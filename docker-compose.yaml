@@ -1,0 +1,8 @@
+services:
+  picoclaw-dev:
+    image: ghcr.io/lostmaniac/picoclaw-dev:latest
+    container_name: picoclaw-dev
+    volumes:
+      - ./root:/root
+      - ./data:/data
+    restart: unless-stopped
