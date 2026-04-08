@@ -1,4 +1,4 @@
-FROM debian:12
+FROM debian:13
 
 # 设置非交互式安装
 ENV DEBIAN_FRONTEND=noninteractive
@@ -37,8 +37,22 @@ RUN apt-get update && apt-get install -y \
     fzf \
     ripgrep \
     bat \
-    eza \
     && rm -rf /var/lib/apt/lists/*
+
+# 安装eza（从GitHub下载最新版本）
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        DOWNLOAD_ARCH="x86_64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        DOWNLOAD_ARCH="aarch64"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    EZA_VERSION=$(curl -s https://api.github.com/repos/eza-community/eza/releases/latest | python3 -c "import sys, json; print(json.load(sys.stdin).get('tag_name', 'latest'))") && \
+    curl -fsSL "https://github.com/eza-community/eza/releases/download/${EZA_VERSION}/eza_${EZA_VERSION}_linux_${DOWNLOAD_ARCH}.tar.gz" -o /tmp/eza.tar.gz && \
+    tar -xzf /tmp/eza.tar.gz -C /tmp && \
+    mv /tmp/eza /usr/bin/ && \
+    rm /tmp/eza.tar.gz
 
 # 安装Chromium浏览器（Debian 版本）
 RUN apt-get update && \
@@ -104,7 +118,7 @@ RUN ARCH=$(uname -m) && \
     picoclaw version && \
     picoclaw onboard
 
-# 设置 apt 国内源（清华源）- Debian 12
+# 设置 apt 国内源（清华源）- Debian 13
 RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
     sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list 2>/dev/null || true
 
