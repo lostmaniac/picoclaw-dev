@@ -40,6 +40,17 @@ RUN apt-get update && apt-get install -y \
     eza \
     && rm -rf /var/lib/apt/lists/*
 
+# 安装Chrome浏览器
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends google-chrome-stable && \
+    rm -rf /var/lib/apt/lists/*
+
+# 配置Chrome为无头模式
+RUN google-chrome --version && \
+    echo "Chrome installed successfully"
+
 # 配置SSH - 只允许密钥登录，禁用密码，启用SFTP
 RUN mkdir /var/run/sshd && \
     sed -i 's/#*PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config && \
@@ -59,14 +70,18 @@ ENV PATH="/root/.cargo/bin:$PATH"
 ENV NVM_DIR="/root/.nvm"
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
-RUN /bin/bash -c '. ~/.nvm/nvm.sh && nvm install --lts'
-RUN /bin/bash -c '. ~/.nvm/nvm.sh && nvm use --lts'
-RUN /bin/bash -c '. ~/.nvm/nvm.sh && nvm alias default node'
-RUN /bin/bash -c '. ~/.nvm/nvm.sh && npm config set registry https://registry.npmmirror.com'
 
-# 设置Node.js环境变量
-ENV NODE_PATH="/root/.nvm/versions/node/$(/bin/bash -c '. ~/.nvm/nvm.sh && nvm current')/lib/node_modules"
-ENV PATH="/root/.nvm/versions/node/$(/bin/bash -c '. ~/.nvm/nvm.sh && nvm current')/bin:$PATH"
+# 安装Node.js LTS并设置默认版本
+RUN /bin/bash -c '. ~/.nvm/nvm.sh && nvm install --lts && nvm alias default node && npm config set registry https://registry.npmmirror.com'
+
+# 创建系统级NVM配置，确保所有shell都能加载
+RUN echo 'export NVM_DIR="/root/.nvm"' > /etc/profile.d/nvm.sh && \
+    echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' >> /etc/profile.d/nvm.sh && \
+    chmod +x /etc/profile.d/nvm.sh
+
+# 设置静态Node.js路径 (v22是当前LTS版本)
+ENV PATH="/root/.nvm/versions/node/v22.12.0/bin:$PATH" \
+    NODE_PATH="/root/.nvm/versions/node/v22.12.0/lib/node_modules"
 
 # 安装 picoclaw
 ARG PICOCLAW_VERSION=latest
