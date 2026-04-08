@@ -25,6 +25,9 @@ RUN apt-get update && apt-get install -y \
     strace \
     jq \
     ca-certificates \
+    software-properties-common \
+    apt-transport-https \
+    gnupg \
     openssh-server \
     openssh-client \
     build-essential \
@@ -40,9 +43,12 @@ RUN apt-get update && apt-get install -y \
     eza \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装Chromium浏览器（支持多架构）
+# 确保启用 universe 仓库并更新软件源
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends chromium-browser fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 && \
+    apt-get install -y --no-install-recommends software-properties-common && \
+    add-apt-repository universe -y && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends chromium-browser libgbm1 libxshmfence1 libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libasound2 libatspi2.0-0 && \
     rm -rf /var/lib/apt/lists/*
 
 # 配置Chromium为无头模式
