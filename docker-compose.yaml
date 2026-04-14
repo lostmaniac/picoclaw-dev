@@ -5,4 +5,4 @@ services:
     volumes:
       - ./root:/root
       - ./data:/data
-restart: unless-stopped
+    restart: unless-stopped
