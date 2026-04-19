@@ -104,10 +104,14 @@ RUN ARCH=$(uname -m) && \
     mv /tmp/picoclaw /usr/bin/ && \
     rm /tmp/picoclaw.tar.gz && \
     picoclaw version && \
-    picoclaw onboard
+    picoclaw onboard && \
+    rm -rf /root/.picoclaw/workspace/skills/agent-browser/ && \
+    git clone --depth 1 https://github.com/ChromeDevTools/chrome-devtools-mcp.git /tmp/chrome-devtools-mcp && \
+    cp -r /tmp/chrome-devtools-mcp/skills/* /root/.picoclaw/workspace/skills/ && \
+    rm -rf /tmp/chrome-devtools-mcp
 
-# 安装 agent-browser
-RUN . "$NVM_DIR/nvm.sh" && npm install -g agent-browser
+# 安装 chrome-devtools-mcp
+RUN . "$NVM_DIR/nvm.sh" && npm i chrome-devtools-mcp@latest -g
 
 # 设置 apt 国内源（清华源）- Debian 13
 RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
