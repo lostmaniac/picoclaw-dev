@@ -58,6 +58,8 @@ if command -v chromium &>/dev/null; then
     CHROME_VER=$(chromium --version | grep -oP '\d+\.\d+\.\d+\.\d+' | head -1)
 
     start_chromium() {
+        # 清理残留的 profile 锁文件，防止重启后启动失败
+        rm -f /root/browse_data/SingletonLock /root/browse_data/SingletonSocket /root/browse_data/SingletonCookie
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting Chromium..."
         chromium \
             --headless=new \
