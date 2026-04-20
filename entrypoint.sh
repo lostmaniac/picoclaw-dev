@@ -53,6 +53,7 @@ if command -v chromium &>/dev/null; then
         --no-sandbox \
         --remote-debugging-port=9222 \
         --user-data-dir=/root/browse_data \
+        --window-size=1920,1080 \
         &
 fi
 

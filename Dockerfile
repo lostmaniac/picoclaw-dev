@@ -59,6 +59,8 @@ RUN mkdir -p /var/run/sshd && \
     sed -i 's/#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config && \
     sed -i 's/#*PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
     sed -i 's/#*UsePAM.*/UsePAM no/' /etc/ssh/sshd_config && \
+    sed -i 's/#*AllowTcpForwarding.*/AllowTcpForwarding yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#*GatewayPorts.*/GatewayPorts yes/' /etc/ssh/sshd_config && \
     sed -i 's/^Subsystem sftp.*/Subsystem sftp internal-sftp/' /etc/ssh/sshd_config
 
 # 创建SSH目录和authorized_keys文件（为空，用户需要手动添加公钥）
