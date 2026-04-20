@@ -1,8 +1,11 @@
 // Emulate Mac M1 Chrome fingerprint
 
-// Extract real Chrome version from original UA
-const chromeVer = navigator.userAgent.match(/Chrome\/[\d.]+/)?.[0] || 'Chrome/136.0.0.0';
-const ua = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ${chromeVer} Safari/537.36`;
+// Extract real Chrome version
+const origUA = navigator.userAgent;
+const chromeVerMatch = origUA.match(/Chrome\/([\d.]+)/);
+const chromeVer = chromeVerMatch ? chromeVerMatch[1] : '136.0.0.0';
+const chromeMajor = chromeVer.split('.')[0];
+const ua = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVer} Safari/537.36`;
 
 // Navigator
 Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel', configurable: true });
@@ -21,6 +24,39 @@ Object.defineProperty(navigator, 'languages', {
   configurable: true
 });
 
+// Override User-Agent Client Hints API (main OS detection vector)
+if (navigator.userAgentData) {
+  const brands = [
+    { brand: 'Chromium', version: chromeMajor },
+    { brand: 'Google Chrome', version: chromeMajor },
+    { brand: 'Not/A)Brand', version: '8' }
+  ];
+  const uaData = { brands, mobile: false, platform: 'macOS' };
+
+  Object.defineProperty(navigator, 'userAgentData', {
+    get: () => ({
+      ...uaData,
+      getHighEntropyValues: async () => ({
+        brands,
+        mobile: false,
+        platform: 'macOS',
+        architecture: 'arm',
+        bitness: '64',
+        model: '',
+        platformVersion: '14.5.0',
+        fullVersionList: [
+          { brand: 'Chromium', version: chromeVer },
+          { brand: 'Google Chrome', version: chromeVer }
+        ],
+        uaFullVersion: chromeVer,
+        wow64: false
+      }),
+      toJSON: () => uaData
+    }),
+    configurable: true
+  });
+}
+
 // WebGL vendor / renderer (37445=UNMASKED_VENDOR, 37446=UNMASKED_RENDERER)
 const hookGL = (proto) => {
   const orig = proto.getParameter;
@@ -35,17 +71,22 @@ if (typeof WebGL2RenderingContext !== 'undefined') {
   hookGL(WebGL2RenderingContext.prototype);
 }
 
-// Screen — match MacBook Pro 16" default
+// Screen — MacBook Pro at 1920x1080
 Object.defineProperty(screen, 'width', { get: () => 1920, configurable: true });
 Object.defineProperty(screen, 'height', { get: () => 1080, configurable: true });
 Object.defineProperty(screen, 'availWidth', { get: () => 1920, configurable: true });
-Object.defineProperty(screen, 'availHeight', { get: () => 1050, configurable: true });
-Object.defineProperty(screen, 'colorDepth', { get: () => 30, configurable: true });
-Object.defineProperty(screen, 'pixelDepth', { get: () => 30, configurable: true });
+Object.defineProperty(screen, 'availHeight', { get: () => 1055, configurable: true });
+Object.defineProperty(screen, 'colorDepth', { get: () => 24, configurable: true });
+Object.defineProperty(screen, 'pixelDepth', { get: () => 24, configurable: true });
 
-// window dimensions
+// Window dimensions — outer = browser chrome, inner = viewport
 Object.defineProperty(window, 'outerWidth', { get: () => 1920, configurable: true });
 Object.defineProperty(window, 'outerHeight', { get: () => 1080, configurable: true });
+Object.defineProperty(window, 'innerWidth', { get: () => 1920, configurable: true });
+Object.defineProperty(window, 'innerHeight', { get: () => 1055, configurable: true });
+
+// devicePixelRatio = 2 for Retina display
+Object.defineProperty(window, 'devicePixelRatio', { get: () => 2, configurable: true });
 
 // Remove headless indicators
 delete navigator.__proto__.webdriver;
