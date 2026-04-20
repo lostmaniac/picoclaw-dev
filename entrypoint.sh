@@ -56,19 +56,35 @@ if command -v chromium &>/dev/null; then
     echo "const INSTANCE_SEED = $(cat "$SEED_FILE");" > /root/chrome-extension/seed.js
 
     CHROME_VER=$(chromium --version | grep -oP '\d+\.\d+\.\d+\.\d+' | head -1)
-    chromium \
-        --headless=new \
-        --disable-gpu \
-        --no-sandbox \
-        --disable-blink-features=AutomationControlled \
-        --force-device-scale-factor=2 \
-        --remote-debugging-port=9222 \
-        --remote-debugging-address=127.0.0.1 \
-        --user-data-dir=/root/browse_data \
-        --window-size=2560,1545 \
-        --lang=zh-CN \
-        --load-extension=/root/chrome-extension \
-        &
+
+    start_chromium() {
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting Chromium..."
+        chromium \
+            --headless=new \
+            --disable-gpu \
+            --no-sandbox \
+            --disable-blink-features=AutomationControlled \
+            --force-device-scale-factor=2 \
+            --remote-debugging-port=9222 \
+            --remote-debugging-address=127.0.0.1 \
+            --user-data-dir=/root/browse_data \
+            --window-size=2560,1545 \
+            --lang=zh-CN \
+            --load-extension=/root/chrome-extension
+    }
+
+    start_chromium &
+
+    # Chromium 进程守护：每30秒检测一次，崩溃则自动重启
+    (
+        while true; do
+            sleep 30
+            if ! pgrep -x chromium > /dev/null; then
+                echo "[$(date '+%Y-%m-%d %H:%M:%S')] Chromium process died, restarting..."
+                start_chromium &
+            fi
+        done
+    ) &
 fi
 
 # 启动PicoClaw网关

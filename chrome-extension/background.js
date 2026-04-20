@@ -37,6 +37,23 @@ chrome.declarativeNetRequest.updateDynamicRules({
       urlFilter: '*',
       resourceTypes: RESOURCE_TYPES
     }
+  }, {
+    // Block web pages from accessing CDP debug port
+    id: 2,
+    priority: 2,
+    action: { type: 'block' },
+    condition: {
+      urlFilter: '||127.0.0.1:9222',
+      resourceTypes: ['xmlhttprequest', 'websocket', 'other', 'sub_frame']
+    }
+  }, {
+    id: 3,
+    priority: 2,
+    action: { type: 'block' },
+    condition: {
+      urlFilter: '||localhost:9222',
+      resourceTypes: ['xmlhttprequest', 'websocket', 'other', 'sub_frame']
+    }
   }],
-  removeRuleIds: [1]
+  removeRuleIds: [1, 2, 3]
 });

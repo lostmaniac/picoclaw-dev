@@ -197,6 +197,20 @@
     }, 'query');
   }
 
+  // ── CDP / cdc_ cleanup ──
+  function removeCdcVars() {
+    var changed = false;
+    for (var k in window) {
+      if (k.indexOf('cdc_') === 0) {
+        delete window[k];
+        changed = true;
+      }
+    }
+    if (changed) console.log('[spoof] removed cdc_ variables');
+  }
+  removeCdcVars();
+  setInterval(removeCdcVars, 3000);
+
   // ── Canvas noise ──
   var origFillText = CanvasRenderingContext2D.prototype.fillText;
   CanvasRenderingContext2D.prototype.fillText = mask(function (text, x, y, maxWidth) {
