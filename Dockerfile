@@ -5,6 +5,8 @@ ARG INSTALL_BROWSER=false
 
 # 设置非交互式安装
 ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=zh_CN.UTF-8
+ENV TZ=Asia/Shanghai
 
 # 安装基础依赖、SSH和常用开发工具
 RUN apt-get update && apt-get install -y \
@@ -40,7 +42,12 @@ RUN apt-get update && apt-get install -y \
     fzf \
     ripgrep \
     bat \
-    && rm -rf /var/lib/apt/lists/*
+    locales \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/* && \
+    sed -i '/zh_CN.UTF-8/s/^# //g' /etc/locale.gen && \
+    locale-gen zh_CN.UTF-8 && \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 # 安装Chromium无头浏览器和字体（仅 browser 变体）
 RUN if [ "$INSTALL_BROWSER" = "true" ]; then \

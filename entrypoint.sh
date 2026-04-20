@@ -63,8 +63,10 @@ if command -v chromium &>/dev/null; then
         --disable-blink-features=AutomationControlled \
         --force-device-scale-factor=2 \
         --remote-debugging-port=9222 \
+        --remote-debugging-address=127.0.0.1 \
         --user-data-dir=/root/browse_data \
         --window-size=1440,900 \
+        --lang=zh-CN \
         --user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROME_VER} Safari/537.36" \
         --load-extension=/root/chrome-extension \
         &

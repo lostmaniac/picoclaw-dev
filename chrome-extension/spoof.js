@@ -1,7 +1,6 @@
 // Emulate MacBook Pro 13" M1 (2020) — macOS Sequoia 15.3
 
-// ── Deterministic PRNG for stable noise ──
-// INSTANCE_SEED is generated per container by seed.js (entrypoint.sh)
+// ── Deterministic PRNG ──
 const NOISE_SEED = typeof INSTANCE_SEED !== 'undefined' ? INSTANCE_SEED : 0x4D616331;
 function mulberry32(a) {
   return function () {
@@ -11,7 +10,6 @@ function mulberry32(a) {
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
 }
-function clamp8(v) { return v < 0 ? 0 : v > 255 ? 255 : v; }
 
 // ── Extract real Chrome version ──
 const origUA = navigator.userAgent;
@@ -19,7 +17,6 @@ const chromeVerMatch = origUA.match(/Chrome\/([\d.]+)/);
 const chromeVer = chromeVerMatch ? chromeVerMatch[1] : '136.0.0.0';
 const chromeMajor = chromeVer.split('.')[0];
 
-// Chrome on macOS freezes OS version to 10_15_7 in UA string (since Chrome 93)
 const ua = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVer} Safari/537.36`;
 
 // ── Navigator ──
@@ -32,16 +29,23 @@ Object.defineProperty(navigator, 'appVersion', {
   get: () => ua.substring(ua.indexOf('/') + 1),
   configurable: true
 });
-Object.defineProperty(navigator, 'webdriver', { get: () => false, configurable: true });
 Object.defineProperty(navigator, 'vendor', { get: () => 'Google Inc.', configurable: true });
+Object.defineProperty(navigator, 'productSub', { get: () => '20030107', configurable: true });
+Object.defineProperty(navigator, 'product', { get: () => 'Gecko', configurable: true });
+
+// ── Languages ── match --lang=zh-CN and Accept-Language header
+Object.defineProperty(navigator, 'language', { get: () => 'zh-CN', configurable: true });
 Object.defineProperty(navigator, 'languages', {
   get: () => ['zh-CN', 'zh', 'en-US', 'en'],
   configurable: true
 });
-Object.defineProperty(navigator, 'productSub', { get: () => '20030107', configurable: true });
-Object.defineProperty(navigator, 'product', { get: () => 'Gecko', configurable: true });
 
-// ── User-Agent Client Hints (critical OS detection vector) ──
+// ── webdriver cleanup ── multi-layer
+Object.defineProperty(navigator, 'webdriver', { get: () => undefined, configurable: true });
+delete navigator.__proto__.webdriver;
+delete Object.getPrototypeOf(navigator).webdriver;
+
+// ── User-Agent Client Hints ──
 if (navigator.userAgentData) {
   const brands = [
     { brand: 'Chromium', version: chromeMajor },
@@ -74,46 +78,42 @@ if (navigator.userAgentData) {
   });
 }
 
-// ── Navigator plugins ── Chrome on Mac has PDF Viewer
+// ── Plugins ──
 Object.defineProperty(navigator, 'plugins', {
   get: () => {
-    const fakePlugin = {
+    const p = {
       0: { type: 'application/pdf', suffixes: 'pdf', description: 'Portable Document Format' },
-      name: 'PDF Viewer',
-      filename: 'internal-pdf-viewer',
-      description: 'Portable Document Format',
-      length: 1,
-      item: (i) => fakePlugin[i],
-      namedItem: (name) => fakePlugin[0]
+      name: 'PDF Viewer', filename: 'internal-pdf-viewer',
+      description: 'Portable Document Format', length: 1,
+      item: (i) => p[i], namedItem: () => p[0]
     };
-    const plugins = [fakePlugin];
-    plugins.item = (i) => plugins[i];
-    plugins.namedItem = (name) => name === 'PDF Viewer' ? fakePlugin : null;
-    plugins.refresh = () => {};
-    Object.defineProperty(plugins, 'length', { get: () => 1 });
-    return plugins;
+    const arr = [p];
+    arr.item = (i) => arr[i];
+    arr.namedItem = (n) => n === 'PDF Viewer' ? p : null;
+    arr.refresh = () => {};
+    Object.defineProperty(arr, 'length', { get: () => 1 });
+    return arr;
   },
   configurable: true
 });
 
 Object.defineProperty(navigator, 'mimeTypes', {
   get: () => {
-    const mime = {
-      type: 'application/pdf',
-      suffixes: 'pdf',
+    const m = {
+      type: 'application/pdf', suffixes: 'pdf',
       description: 'Portable Document Format',
       enabledPlugin: { name: 'PDF Viewer' }
     };
-    const mimes = [mime];
-    mimes.item = (i) => mimes[i];
-    mimes.namedItem = (name) => name === 'application/pdf' ? mime : null;
-    Object.defineProperty(mimes, 'length', { get: () => 1 });
-    return mimes;
+    const arr = [m];
+    arr.item = (i) => arr[i];
+    arr.namedItem = (n) => n === 'application/pdf' ? m : null;
+    Object.defineProperty(arr, 'length', { get: () => 1 });
+    return arr;
   },
   configurable: true
 });
 
-// ── WebGL ── Apple M1 GPU
+// ── WebGL ── Apple M1
 const hookGL = (proto) => {
   const orig = proto.getParameter;
   proto.getParameter = function (param) {
@@ -123,41 +123,31 @@ const hookGL = (proto) => {
   };
 };
 hookGL(WebGLRenderingContext.prototype);
-if (typeof WebGL2RenderingContext !== 'undefined') {
-  hookGL(WebGL2RenderingContext.prototype);
-}
+if (typeof WebGL2RenderingContext !== 'undefined') hookGL(WebGL2RenderingContext.prototype);
 
-// ── Screen ── MacBook Pro 13" Retina (2560x1600 native, default scaled 1440x900)
+// ── Screen ── MacBook Pro 13" Retina
 Object.defineProperty(screen, 'width', { get: () => 1440, configurable: true });
 Object.defineProperty(screen, 'height', { get: () => 900, configurable: true });
 Object.defineProperty(screen, 'availWidth', { get: () => 1440, configurable: true });
 Object.defineProperty(screen, 'availHeight', { get: () => 875, configurable: true });
 Object.defineProperty(screen, 'colorDepth', { get: () => 24, configurable: true });
 Object.defineProperty(screen, 'pixelDepth', { get: () => 24, configurable: true });
-Object.defineProperty(screen, 'orientation', {
-  get: () => ({
-    angle: 0,
-    type: 'landscape-primary',
-    onchange: null
-  }),
-  configurable: true
-});
 
-// ── Window dimensions ── simulate Chrome UI offset (tabs + address bar ≈ 85px)
+// ── Window ── Chrome UI offset ~85px
 Object.defineProperty(window, 'innerWidth', { get: () => 1440, configurable: true });
 Object.defineProperty(window, 'innerHeight', { get: () => 815, configurable: true });
 Object.defineProperty(window, 'outerWidth', { get: () => 1440, configurable: true });
 Object.defineProperty(window, 'outerHeight', { get: () => 900, configurable: true });
 
-// ── Notification ── real Mac defaults to "default", not "denied"
+// ── Notification ──
 if (typeof Notification !== 'undefined') {
   Object.defineProperty(Notification, 'permission', { get: () => 'default', configurable: true });
 }
 
-// ── document.hasFocus ── headless always returns false
+// ── document.hasFocus ──
 Document.prototype.hasFocus = function () { return true; };
 
-// ── Permissions API ── notifications should be "prompt" on a fresh Mac
+// ── Permissions ──
 if (navigator.permissions) {
   const origQuery = navigator.permissions.query.bind(navigator.permissions);
   navigator.permissions.query = (params) => {
@@ -168,80 +158,20 @@ if (navigator.permissions) {
   };
 }
 
-// ── Canvas fingerprint noise ──
-// Add deterministic noise to canvas output to mask OS rendering differences.
-// Uses offscreen canvas so original canvas is never modified.
-const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
-HTMLCanvasElement.prototype.toDataURL = function () {
-  try {
-    if (this.width > 0 && this.height > 0) {
-      const off = document.createElement('canvas');
-      off.width = this.width;
-      off.height = this.height;
-      const ctx = off.getContext('2d');
-      ctx.drawImage(this, 0, 0);
-      const imgData = ctx.getImageData(0, 0, off.width, off.height);
-      const d = imgData.data;
-      const rng = mulberry32(NOISE_SEED);
-      for (let i = 0; i < d.length; i += 4 * 97) {
-        d[i] = clamp8(d[i] + ((rng() * 3) | 0) - 1);
-        d[i + 1] = clamp8(d[i + 1] + ((rng() * 3) | 0) - 1);
-        d[i + 2] = clamp8(d[i + 2] + ((rng() * 3) | 0) - 1);
-      }
-      ctx.putImageData(imgData, 0, 0);
-      return origToDataURL.apply(off, arguments);
-    }
-  } catch (e) { /* fallback */ }
-  return origToDataURL.apply(this, arguments);
+// ── Canvas noise at render level ── stealthier than intercepting toDataURL
+// Shift text rendering by sub-pixel amount → changes actual canvas pixels naturally
+const origFillText = CanvasRenderingContext2D.prototype.fillText;
+CanvasRenderingContext2D.prototype.fillText = function (text, x, y, maxWidth) {
+  const rng = mulberry32(NOISE_SEED ^ (text.length * 137));
+  const dx = (rng() - 0.5) * 0.02;
+  const dy = (rng() - 0.5) * 0.02;
+  return origFillText.call(this, text, x + dx, y + dy, maxWidth);
 };
 
-const origToBlob = HTMLCanvasElement.prototype.toBlob;
-HTMLCanvasElement.prototype.toBlob = function (callback) {
-  try {
-    if (this.width > 0 && this.height > 0) {
-      const off = document.createElement('canvas');
-      off.width = this.width;
-      off.height = this.height;
-      const ctx = off.getContext('2d');
-      ctx.drawImage(this, 0, 0);
-      const imgData = ctx.getImageData(0, 0, off.width, off.height);
-      const d = imgData.data;
-      const rng = mulberry32(NOISE_SEED);
-      for (let i = 0; i < d.length; i += 4 * 97) {
-        d[i] = clamp8(d[i] + ((rng() * 3) | 0) - 1);
-        d[i + 1] = clamp8(d[i + 1] + ((rng() * 3) | 0) - 1);
-        d[i + 2] = clamp8(d[i + 2] + ((rng() * 3) | 0) - 1);
-      }
-      ctx.putImageData(imgData, 0, 0);
-      return origToBlob.apply(off, arguments);
-    }
-  } catch (e) { /* fallback */ }
-  return origToBlob.apply(this, arguments);
+const origStrokeText = CanvasRenderingContext2D.prototype.strokeText;
+CanvasRenderingContext2D.prototype.strokeText = function (text, x, y, maxWidth) {
+  const rng = mulberry32(NOISE_SEED ^ (text.length * 251));
+  const dx = (rng() - 0.5) * 0.02;
+  const dy = (rng() - 0.5) * 0.02;
+  return origStrokeText.call(this, text, x + dx, y + dy, maxWidth);
 };
-
-// ── AudioContext fingerprint noise ──
-if (typeof AudioBuffer !== 'undefined') {
-  const origGetChannelData = AudioBuffer.prototype.getChannelData;
-  AudioBuffer.prototype.getChannelData = function (channel) {
-    const data = origGetChannelData.call(this, channel);
-    const rng = mulberry32(NOISE_SEED);
-    for (let i = 0; i < data.length; i += 100) {
-      data[i] += (rng() - 0.5) * 0.0001;
-    }
-    return data;
-  };
-}
-
-if (typeof AnalyserNode !== 'undefined') {
-  const origGetFloatFreq = AnalyserNode.prototype.getFloatFrequencyData;
-  AnalyserNode.prototype.getFloatFrequencyData = function (array) {
-    origGetFloatFreq.call(this, array);
-    const rng = mulberry32(NOISE_SEED);
-    for (let i = 0; i < array.length; i += 50) {
-      array[i] += (rng() - 0.5) * 0.01;
-    }
-  };
-}
-
-// ── Remove headless indicators ──
-delete navigator.__proto__.webdriver;
