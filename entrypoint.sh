@@ -17,9 +17,44 @@ file_count=$(ls -la /root | wc -l)
 if [ "$file_count" -le 3 ]; then
     echo "Initializing /root directory from backup..."
     cp -a /root.original/. /root/
-    # 保持 authorized_keys 为空，由用户自行添加
     truncate -s 0 /root/.ssh/authorized_keys
 fi
 
-# 启动 SSH 服务
+# 生成RSA密钥（如果不存在）
+if [ ! -f /root/.ssh/id_rsa ]; then
+    echo "Generating RSA key pair..."
+    ssh-keygen -t rsa -b 4096 -f /root/.ssh/id_rsa -N "" -q
+fi
+
+# 检查authorized_keys是否包含公钥，不一致则写入
+PUB_KEY=$(cat /root/.ssh/id_rsa.pub)
+AUTH_FILE="/root/.ssh/authorized_keys"
+if ! grep -qF "$PUB_KEY" "$AUTH_FILE" 2>/dev/null; then
+    echo "Writing public key to authorized_keys..."
+    echo "$PUB_KEY" >> "$AUTH_FILE"
+fi
+
+# 启动SSH服务
+echo "Starting SSH service..."
+mkdir -p /var/run/sshd
+/usr/sbin/sshd
+until nc -z localhost 22; do
+    sleep 0.5
+done
+echo "SSH service is running on port 22"
+
+# 启动Chromium无头模式（仅browser变体）
+if command -v chromium &>/dev/null; then
+    echo "Starting Chromium headless..."
+    mkdir -p /root/browse_data
+    chromium \
+        --headless \
+        --disable-gpu \
+        --no-sandbox \
+        --remote-debugging-port=9222 \
+        --user-data-dir=/root/browse_data \
+        &
+fi
+
+# 启动PicoClaw网关
 exec picoclaw gateway -E

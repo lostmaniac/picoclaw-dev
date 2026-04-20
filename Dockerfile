@@ -42,13 +42,15 @@ RUN apt-get update && apt-get install -y \
     bat \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装Chromium浏览器（仅 browser 变体）
+# 安装Chromium无头浏览器和中文字体（仅 browser 变体）
 RUN if [ "$INSTALL_BROWSER" = "true" ]; then \
     apt-get update && \
-    apt-get install -y --no-install-recommends chromium && \
+    apt-get install -y --no-install-recommends \
+        chromium \
+        fonts-noto-cjk && \
     rm -rf /var/lib/apt/lists/* && \
-    chromium --version && \
-    echo "Chromium installed successfully"; \
+    chromium --headless --no-sandbox --disable-gpu --dump-dom about:blank > /dev/null && \
+    echo "Chromium headless + CJK fonts installed successfully"; \
     fi
 
 # 配置SSH - 只允许密钥登录，禁用密码，启用SFTP
