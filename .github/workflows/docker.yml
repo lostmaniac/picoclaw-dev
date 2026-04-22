@@ -87,7 +87,6 @@ jobs:
             type=raw,value=${{ needs.check-version.outputs.version }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix=
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
