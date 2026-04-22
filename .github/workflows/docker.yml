@@ -96,6 +96,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: INSTALL_BROWSER=${{ matrix.variant.install_browser }}
+          build-args: |
+            INSTALL_BROWSER=${{ matrix.variant.install_browser }}
+            PICOCLAW_VERSION=${{ needs.check-version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

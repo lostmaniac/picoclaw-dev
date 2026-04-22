@@ -109,9 +109,11 @@ RUN ARCH=$(uname -m) && \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
     echo "Installing picoclaw for platform: $ARCH (download: $DOWNLOAD_ARCH)" && \
-    LATEST_VERSION=$(curl -s https://api.github.com/repos/sipeed/picoclaw/releases/latest | python3 -c "import sys, json; print(json.load(sys.stdin).get('tag_name', 'latest'))" 2>/dev/null || echo "latest") && \
-    echo "Latest picoclaw version: $LATEST_VERSION" && \
-    DOWNLOAD_URL="https://github.com/sipeed/picoclaw/releases/download/${LATEST_VERSION}/picoclaw_Linux_${DOWNLOAD_ARCH}.tar.gz" && \
+    if [ "$PICOCLAW_VERSION" = "latest" ]; then \
+        PICOCLAW_VERSION=$(curl -s https://api.github.com/repos/sipeed/picoclaw/releases/latest | python3 -c "import sys, json; print(json.load(sys.stdin).get('tag_name', 'latest'))" 2>/dev/null || echo "latest"); \
+    fi && \
+    echo "Installing picoclaw version: $PICOCLAW_VERSION" && \
+    DOWNLOAD_URL="https://github.com/sipeed/picoclaw/releases/download/${PICOCLAW_VERSION}/picoclaw_Linux_${DOWNLOAD_ARCH}.tar.gz" && \
     echo "Downloading from: $DOWNLOAD_URL" && \
     curl -fsSL "$DOWNLOAD_URL" -o /tmp/picoclaw.tar.gz && \
     tar -xzf /tmp/picoclaw.tar.gz -C /tmp && \
