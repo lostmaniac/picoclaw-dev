@@ -79,7 +79,8 @@ RUN mkdir -p /root/.ssh && touch /root/.ssh/authorized_keys && chmod 700 /root/.
 
 # 安装uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:$PATH"
+ENV PATH="/root/.local/bin:/root/.cargo/bin:$PATH" \
+    UV_DEFAULT_INDEX="https://pypi.tuna.tsinghua.edu.cn/simple"
 
 # 安装nvm
 ENV NVM_DIR="/root/.nvm"
